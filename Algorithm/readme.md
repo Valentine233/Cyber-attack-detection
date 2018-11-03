@@ -28,9 +28,8 @@ Each char is represented by a one hot vector whose length is number of total cha
 - **GetFeatures**
 Get all sentences represented by one hot features at one time. Note that this class is intended for getting intermediate features, so the order of data can't be changed.
 
-- **MakeBatches**
-Load batches from existing feature and label files.
-"utils/getSent" should be run before in order to save feature and label files.
+- **Bigram**
+The bigram version of One_hot, with which it shares the same APIs.
 
 
 ## folder "networks"
@@ -39,6 +38,9 @@ We use autoencoder to extract features. The output of encoder is the final featu
 
 - **SimpleAutoEncoder**
 A simple autoencoder containing only linear and activation layers
+
+- **VAE**
+A Variational Autoencoder
 
 ### rnnlm.py
 A RNN language model which is trained to predict next word given the current word. After one sentence has been fed into the net, the hidden state of RNN is the final feature of this sentence.
