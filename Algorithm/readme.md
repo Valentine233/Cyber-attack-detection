@@ -67,12 +67,18 @@ save intermediate features of autoencoder model into a file given a trained auto
 ### train_mlp.py
 After extracting features of sentences, do a classification with multi-layer perceptron. Evaluation metrics like accuracy, precision and recall are calculated. 2d-PCA is performed in the end for visualization.
 
+### IF.py
+Train a random forest classifier. It can be run directly.
+
+### CNN_model.py
+It uses the characters CNN to capture the features and uses a FC layer to make the prediction.
 
 ## folder "clustering"
 ### train_kmeans.py
 After extracting features of sentences, do a clustering with kmeans. Evaluation metrics like accuracy, precision and recall are calculated. 2d-PCA is performed in the end for visualization.
 
-
+### char_clustering.py
+It uses the pretrained character embeddings to represent the features. Then Kmeans is applied to do the clustering.
 
 # DATA
 
@@ -88,7 +94,11 @@ intermediate features after rnnlm and ae with embed_size=128 and hidden_size=64
 ## emb200-hid128
 intermediate features after rnnlm and ae with embed_size=200 and hidden_size=128
 
+## char_embedding
+A pretrained char embedding
 
+## last_year
+Log data from last year
 
 # MODEL
 
