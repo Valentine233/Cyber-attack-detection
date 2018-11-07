@@ -28,9 +28,8 @@ Each char is represented by a one hot vector whose length is number of total cha
 - **GetFeatures**
 Get all sentences represented by one hot features at one time. Note that this class is intended for getting intermediate features, so the order of data can't be changed.
 
-- **MakeBatches**
-Load batches from existing feature and label files.
-"utils/getSent" should be run before in order to save feature and label files.
+- **Bigram**
+The bigram version of One_hot, with which it shares the same APIs.
 
 
 ## folder "networks"
@@ -39,6 +38,9 @@ We use autoencoder to extract features. The output of encoder is the final featu
 
 - **SimpleAutoEncoder**
 A simple autoencoder containing only linear and activation layers
+
+- **VAE**
+A Variational Autoencoder
 
 ### rnnlm.py
 A RNN language model which is trained to predict next word given the current word. After one sentence has been fed into the net, the hidden state of RNN is the final feature of this sentence.
@@ -65,12 +67,18 @@ save intermediate features of autoencoder model into a file given a trained auto
 ### train_mlp.py
 After extracting features of sentences, do a classification with multi-layer perceptron. Evaluation metrics like accuracy, precision and recall are calculated. 2d-PCA is performed in the end for visualization.
 
+### IF.py
+Train a random forest classifier. It can be run directly.
+
+### CNN_model.py
+It uses the characters CNN to capture the features and uses a FC layer to make the prediction.
 
 ## folder "clustering"
 ### train_kmeans.py
 After extracting features of sentences, do a clustering with kmeans. Evaluation metrics like accuracy, precision and recall are calculated. 2d-PCA is performed in the end for visualization.
 
-
+### char_clustering.py
+It uses the pretrained character embeddings to represent the features. Then Kmeans is applied to do the clustering.
 
 # DATA
 
@@ -86,7 +94,11 @@ intermediate features after rnnlm and ae with embed_size=128 and hidden_size=64
 ## emb200-hid128
 intermediate features after rnnlm and ae with embed_size=200 and hidden_size=128
 
+## char_embedding
+A pretrained char embedding
 
+## last_year
+Log data from last year
 
 # MODEL
 
