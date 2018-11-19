@@ -40,6 +40,7 @@ def getSent(anor_test, nor_test, nor_train, request_file, label_file):
                     first_line = True
         with open(nor_test,'r') as f:
             first_line = True
+            content_flag = False
             for line in f:
                 if first_line == True and line.strip() != "":
                     sentences.append(line.strip())
@@ -56,6 +57,7 @@ def getSent(anor_test, nor_test, nor_train, request_file, label_file):
                     first_line = True
         with open(nor_train,'r') as f:
             first_line = True
+            content_flag = False
             for line in f:
                 if first_line == True and line.strip() != "":
                     sentences.append(line.strip())
