@@ -1,7 +1,7 @@
 ##  How to use it
 ```bash
 pip install -r requirements.txt
-python main.py bigan kdd run
+python main.py bigan kdd run --nb_epochs=20
 ```
 
 ------------
