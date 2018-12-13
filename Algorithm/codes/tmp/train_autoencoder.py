@@ -17,8 +17,8 @@ import numpy as np
 from utils import to_var
 import pickle
 
-#data_fn = 'data/CSIC2010/request_train.txt'
-data_fn = 'data/CSIC2010/request_train_bpe.txt'
+bigram_data_fn = 'data/CSIC2010/request_train.txt'
+bpe_data_fn = 'data/CSIC2010/request_train_bpe.txt'
 batch_size = 100
 learning_rate = 0.01/batch_size #parm for MLP
 #learning_rate = 0.001 #parm for VAE
@@ -33,7 +33,7 @@ def lr_decay(optimizer, epoch, decay_rate, init_lr):
         param_group['lr'] = lr
     return optimizer
 
-def getSent():
+def getSent(data_fn):
     sentences = []
     with open(data_fn) as f:
         for line in f:
@@ -46,11 +46,12 @@ def VAE_loss(recon_x, x, mu, logvar, beta=1):
 
     return BCE + beta*KLD
 
-def getData(lm):
-    sentences = getSent()
+def getData(lm): 
     if lm == "bigram":
+        sentences = getSent(bigram_data_fn)
         data = bi_gram(sentences)
     if lm == "bpe":
+        sentences = getSent(bpe_data_fn)
         data = bpe_gram(sentences)
     else:
         return None
