@@ -17,15 +17,15 @@ class RNNLM(nn.Module):
 
 	def forward(self, input, lengths, state):
 		embed_input = self.embed(input)
-		lens, indices = torch.sort(embed_input.data.new(lengths).long(), 0 ,True)
-		embed_input = embed_input[indices]
-		lstm_input = pack_padded_sequence(embed_input, lens.tolist(), batch_first=True)
-		output, (h, c) = self.lstm(lstm_input, state)
-		output = pad_packed_sequence(output, batch_first=True)[0]
-		_, _indices = torch.sort(indices, 0)
-		ordered_output = output[_indices] # batch in dim-0
-		h, c = h[:, _indices, :], c[:, _indices, :] # batch in dim-1
-		final_output = self.linear(ordered_output)
+		# lens, indices = torch.sort(embed_input.data.new(lengths).long(), 0 ,True)
+		# embed_input = embed_input[indices]
+		# lstm_input = pack_padded_sequence(embed_input, lens.tolist(), batch_first=True)
+		output, (h, c) = self.lstm(embed_input, state)
+		# output = pad_packed_sequence(output, batch_first=True)[0]
+		# _, _indices = torch.sort(indices, 0)
+		# ordered_output = output[_indices] # batch in dim-0
+		# h, c = h[:, _indices, :], c[:, _indices, :] # batch in dim-1
+		final_output = self.linear(output)
 
 		return final_output, h
 

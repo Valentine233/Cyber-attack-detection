@@ -21,8 +21,13 @@ from config import *
 # step_num = int(trainlen / batch_size)
 # test_step_num = int(testlen / batch_size)
 
-sentences, labels = getSent(anor_test, nor_test, nor_train, request_file, label_file)
-data_processor = One_hot(sentences, labels, batch_size)
+# char
+# train_sents, test_sents, train_labels, test_labels = getSent(train_fn, test_fn, train_label_fn, test_label_fn)
+# data_processor = One_hot(train_sents, test_sents, train_labels, test_labels, batch_size)
+# bpe
+train_sents, test_sents, train_labels, test_labels = getSent(train_bpe_fn, test_bpe_fn, train_label_fn, test_label_fn)
+data_processor = One_hot(train_sents, test_sents, train_labels, test_labels, batch_size, mode='bpe')
+
 trainlen = data_processor.train_len()
 testlen = data_processor.test_len()
 vocab_size = data_processor.voc_len()
@@ -43,21 +48,19 @@ criterion = nn.MSELoss()
 optimizer = torch.optim.Adam(ae.parameters(), lr=learning_rate)
 
 # log file
-log = open(ae_log_file,'w')
+log = open(ae_log_file,'w+')
 
 # initiate
 state = (to_var(torch.zeros(num_layers, batch_size, hidden_size), cuda_num), to_var(torch.zeros(num_layers, batch_size, hidden_size), cuda_num))
 
 # train
-rnnlm.train()
+rnnlm.eval()
 ae.train()
 for epoch in range(epoch_num):
+    step_loss = []
     for step in range(step_num):
-        step_loss = []
-
         # mini-batch
         sents, labels, lens = data_processor.getBatch(step, train=True)
-
         input_sents = copy.deepcopy(sents)
         target_sents = copy.deepcopy(sents)
 
@@ -69,8 +72,10 @@ for epoch in range(epoch_num):
             s.append(data_processor.unigram2index['<eos>'])
         target_sents = [torch.LongTensor(s) for s in target_sents]
         
-        padded_input_sents = pad_sequence(input_sents, batch_first=True, padding_value=0)
-        padded_target_sents = pad_sequence(target_sents, batch_first=True, padding_value=0)
+        lens = [l+1 for l in lens]
+        
+        padded_input_sents = pad(input_sents, lens, padding_value=0)
+        padded_target_sents = pad(target_sents, lens, padding_value=0)
 
         if torch.cuda.is_available():
             padded_input_sents = to_var(padded_input_sents, cuda_num)
@@ -79,13 +84,13 @@ for epoch in range(epoch_num):
         # forward pass
         # outputs: (batch_size, seq_len, vocab_size)
         # h: (num_layers*num_directions, batch, hidden_size)
-        outputs, h = rnnlm(padded_input_sents, [l+1 for l in lens], state) # len+1 for adding <sos>
+        outputs, h = rnnlm(padded_input_sents, lens, state) # len+1 for adding <sos>
         # features: (batch, hidden_size)
         features = torch.squeeze(h, 0)
         
         # forward pass
         encode, decode = ae(features.detach())
-        loss = criterion(decode, features)
+        loss = criterion(decode, features.detach())
         step_loss.append(loss.data)
         log.write("[epoch%d, step%d]: loss %f\n" % (epoch+1, step+1, loss.data))
 
@@ -108,12 +113,11 @@ torch.save(ae.state_dict(), ae_model_file)
 # test
 rnnlm.eval()
 ae.eval()
+step_loss = []
 for step in range(test_step_num):
-    step_loss = []
 
     # mini-batch
-    sents, labels, lens = data_processor.getBatch(step, train=True)
-
+    sents, labels, lens = data_processor.getBatch(step, train=False)
     input_sents = copy.deepcopy(sents)
     target_sents = copy.deepcopy(sents)
 
@@ -125,8 +129,10 @@ for step in range(test_step_num):
         s.append(data_processor.unigram2index['<eos>'])
     target_sents = [torch.LongTensor(s) for s in target_sents]
         
-    padded_input_sents = pad_sequence(input_sents, batch_first=True, padding_value=0)
-    padded_target_sents = pad_sequence(target_sents, batch_first=True, padding_value=0)
+    lens = [l+1 for l in lens]
+        
+    padded_input_sents = pad(input_sents, lens, padding_value=0)
+    padded_target_sents = pad(target_sents, lens, padding_value=0)
 
     if torch.cuda.is_available():
         padded_input_sents = to_var(padded_input_sents, cuda_num)
@@ -135,13 +141,13 @@ for step in range(test_step_num):
     # forward pass
     # outputs: (batch_size, seq_len, vocab_size)
     # h: (num_layers*num_directions, batch, hidden_size)
-    outputs, h = rnnlm(padded_input_sents, [l+1 for l in lens], state) # len+1 for adding <sos>
+    outputs, h = rnnlm(padded_input_sents, lens, state) # len+1 for adding <sos>
     # features: (batch, hidden_size)
     features = torch.squeeze(h, 0)
         
     # forward pass
     encode, decode = ae(features.detach())
-    loss = criterion(decode, features)
+    loss = criterion(decode, features.detach())
     step_loss.append(loss.data)
     log.write("[TEST step%d]: loss %f\n" % (step+1, loss.data))
 

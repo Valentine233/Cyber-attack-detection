@@ -1,24 +1,43 @@
-from sklearn.model_selection import train_test_split
+# from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 import numpy as np
 import logging
 
 # one hot sentence features for language model
 class One_hot:
-    def __init__(self, sentences, labels, batch_size, shuffle=True):
-        self.sentences = sentences
+    def __init__(self, train_sents, test_sents, train_labels, test_labels, batch_size, shuffle=True, mode='char'):
+        self.x_train, self.x_test, self.y_train, self.y_test = train_sents, test_sents, train_labels, test_labels
         self.batch_size = batch_size
+        self.mode = mode
         # self.sentences_no_repeat = list(set(self.sentences))
         self.unigram2index = {'<pad>':0, '<sos>':1, '<eos>':2, '<unk>':3}
         self.index2unigram = {0:'<pad>', 1:'<sos>', 2:'<eos>', 3:'<unk>'}
+        self.char_count = {}
         self.build()
-        self.x_train, self.x_test, self.y_train, self.y_test = train_test_split(sentences, labels, test_size=0.2, shuffle=shuffle, random_state=1)
         self.makeFeatures()
 
     def build(self, seuil=10, truncating=True):
-        for sentence in self.sentences:
-            for char in sentence:
-                if char not in self.unigram2index:
+        self.sentences = self.x_train + self.x_test
+        if self.mode == 'char':
+            for sentence in self.sentences:
+                for char in sentence:
+                    if char not in self.unigram2index:
+                        self.char_count[char] = 1
+                    else:
+                        self.char_count[char] += 1
+        elif self.mode == 'bpe':
+            for sentence in self.sentences:
+                words = sentence.split()
+                for word in words:
+                    if word not in self.unigram2index:
+                        self.char_count[word] = 1
+                    else:
+                        self.char_count[word] += 1
+        else:
+            raise ValueError("Not support mode %s" % self.mode)
+        if truncating == True:
+            for char in self.char_count:
+                if self.char_count[char] > seuil:
                     self.unigram2index[char] = len(self.unigram2index)
         self.index2unigram = {v: k for k, v in self.unigram2index.items()}
 
@@ -45,23 +64,30 @@ class One_hot:
             # feature = torch.FloatTensor(test_feature)
             self.test_features.append(test_feature)
 
+        self.all_features = self.train_features + self.test_features
+        self.all_y = self.y_train + self.y_test
+
     def train_len(self):
         return len(self.x_train)
 
     def test_len(self):
         return len(self.x_test)
 
+    def all_len(self):
+        return len(self.x_train) + len(self.x_test)
+
     def voc_len(self):
         return len(self.unigram2index)
 
     def getBatch(self, idx, train=True):
         # shuffle before each epoch
+        self.tr_features, self.y_tr = self.train_features, self.y_train
         if idx==0 and train:
-            self.train_features, self.y_train = shuffle(self.train_features, self.y_train)
+            self.tr_features, self.y_tr = shuffle(self.train_features, self.y_train)
         
         if train:
-            sent = self.train_features
-            label = self.y_train
+            sent = self.tr_features
+            label = self.y_tr
         else:
             sent = self.test_features
             label = self.y_test
@@ -76,37 +102,58 @@ class One_hot:
 
         return batch_sentences, batch_labels, batch_lens
 
+    def getAllBatch(self, idx, train=True):
+        # shuffle before each epoch
 
-# get all features
-class GetFeatures:
-    def __init__(self, sentences):
-        self.sentences = sentences
-        # self.sentences_no_repeat = list(set(self.sentences))
-        self.unigram2index = {'<pad>':0, '<sos>':1, '<eos>':2, '<unk>':3}
-        self.index2unigram = {0:'<pad>', 1:'<sos>', 2:'<eos>', 3:'<unk>'}
-        self.build()
-        self.makeFeatures()
+        self.features, self.y = self.all_features, self.all_y
+        if idx==0 and train:
+            self.features, self.y = shuffle(self.all_features, self.all_y)
 
-    def build(self, seuil=10, truncating=True):
-        for sentence in self.sentences:
-            for char in sentence:
-                if char not in self.unigram2index:
-                    self.unigram2index[char] = len(self.unigram2index)
-        self.index2unigram = {v: k for k, v in self.unigram2index.items()}
+        sent = self.features
+        label = self.y
+        
+        batch_sentences = []
+        batch_labels = []
+        batch_lens = []
+        for i in range(self.batch_size):
+            batch_sentences.append(sent[idx * self.batch_size + i])
+            batch_labels.append(int(label[idx * self.batch_size + i]))
+            batch_lens.append(len(sent[idx * self.batch_size + i]))
 
-    def makeFeatures(self):
-        self.features = []
-        for i, sentence in enumerate(self.sentences):
-            feature = []
-            for char in sentence:
-                if char not in self.unigram2index:
-                    feature.append(self.unigram2index['<unk>'])
-                else:
-                    feature.append(self.unigram2index[char])
-            self.features.append(feature)
+        return batch_sentences, batch_labels, batch_lens
 
-    def voc_len(self):
-        return len(self.unigram2index)
+
+# # get all features
+# class GetFeatures:
+#     def __init__(self, train_sents, test_sents):
+#         self.train_sents = train_sents
+#         self.test_sents = test_sents
+#         # self.sentences_no_repeat = list(set(self.sentences))
+#         self.unigram2index = {'<pad>':0, '<sos>':1, '<eos>':2, '<unk>':3}
+#         self.index2unigram = {0:'<pad>', 1:'<sos>', 2:'<eos>', 3:'<unk>'}
+#         self.build()
+#         self.makeFeatures()
+
+#     def build(self, seuil=10, truncating=True):
+#         for sentence in self.train_sents:
+#             for char in sentence:
+#                 if char not in self.unigram2index:
+#                     self.unigram2index[char] = len(self.unigram2index)
+#         self.index2unigram = {v: k for k, v in self.unigram2index.items()}
+
+#     def makeFeatures(self):
+#         self.features = []
+#         for i, sentence in enumerate(self.test_sents):
+#             feature = []
+#             for char in sentence:
+#                 if char not in self.unigram2index:
+#                     feature.append(self.unigram2index['<unk>'])
+#                 else:
+#                     feature.append(self.unigram2index[char])
+#             self.features.append(feature)
+
+#     def voc_len(self):
+#         return len(self.unigram2index)
 
 # make the bigram feature
 class Bigram:

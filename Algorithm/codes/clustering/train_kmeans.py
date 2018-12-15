@@ -25,7 +25,8 @@ precision = sum([x&y for (x, y) in zip(pred_labels, equal)]) / sum(pred_labels)
 print("Precision: %f" % precision)
 recall = sum([x&y for (x, y) in zip(pred_labels, equal)]) / sum(labels)
 print("Recall: %f" % recall)
-
+f1 = 2 * (precision * recall) / (precision + recall)
+print("F1-score: %f" % f1)
 
 # plot
 pca = PCA(n_components=2)
